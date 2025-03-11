@@ -3,25 +3,24 @@
 
 using namespace MyELF;
 
-
 inline std::string elf_class(uint8_t e_data)
 {
-    switch(e_data)
+    switch (e_data)
     {
-        case 0:
-            return "Invalid data enconding";
-        case 1:
-            return "LSB";
-        case 2:
-            return "MSB";
-        default:
-            return "Unexpected";
+    case 0:
+        return "Invalid data enconding";
+    case 1:
+        return "LSB";
+    case 2:
+        return "MSB";
+    default:
+        return "Unexpected";
     }
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
-    if(argc < 2)
+    if (argc < 2)
     {
         std::cerr << "Usage: " << argv[0] << " <elf file>" << std::endl;
         return 1;
@@ -55,11 +54,11 @@ int main(int argc, char* argv[])
         std::cout << indent << "Shnum: " << std::dec << header.e_shnum << std::endl;
         std::cout << indent << "Shstrndx: " << std::dec << header.e_shstrndx << std::endl;
     };
-    ELFSectionHandler section_printer = [](ELFSection64 section, const std::string &name)
+    ELFSectionHandler section_printer = [count = 0](ELFSection64 section, const std::string &name) mutable
     {
         std::string indent = "\t";
-        std::cout << "Section: " << name << std::endl;
-        std::cout << indent << "Name: " << section.sh_name << std::endl;
+        std::cout << "Section # " << ++count << std::endl;
+        std::cout << indent << "Name: " << name << std::endl;
         std::cout << indent << "Type: 0x" << std::hex << section.sh_type << std::endl;
         std::cout << indent << "Flags: 0x" << std::hex << section.sh_flags << std::endl;
         std::cout << indent << "Addr: 0x" << std::hex << section.sh_addr << std::endl;
