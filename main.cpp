@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     }
     ELFParser parser{argv[1]};
     parser.load();
-    ELFHeaderHandler header_printer = [](ELFHeader64 header)
+    ELFHeaderHandler header_printer = [](const ELFHeader64 &header)
     {
         std::string indent = "\t";
         std::cout << "Elf header: " << std::endl;
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
         std::cout << indent << "Shnum: " << std::dec << header.e_shnum << std::endl;
         std::cout << indent << "Shstrndx: " << std::dec << header.e_shstrndx << std::endl;
     };
-    ELFSectionHandler section_printer = [count = 0](ELFSection64 section, const std::string &name) mutable
+    ELFSectionHandler section_printer = [count = 0](const ELFSection64 &section, const std::string &name) mutable
     {
         std::string indent = "\t";
         std::cout << "Section # " << ++count << std::endl;
