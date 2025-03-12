@@ -63,37 +63,36 @@ void ELFParser::readSectionTable()
         if (mHeader.e_shoff > 0)
         {
             // Read section table
-            mSections.resize(mHeader.e_shnum);
-            std::memcpy(mSections.data(), mBuffer.data() + mHeader.e_shoff, mHeader.e_shnum * sizeof(ELFSection64));
+            // Read all sections first to get access to section header table
+            std::vector<std::unique_ptr<ELFSection64>> sect_vector; // tmp vector to store read section
+            sect_vector.reserve(mHeader.e_shnum);
+            // Raw data pointer
+            ELFSection64 *sections = reinterpret_cast<ELFSection64 *>(mBuffer.data() + mHeader.e_shoff);
+            for (size_t i = 0; i < mHeader.e_shnum; i++)
+            {
+                std::unique_ptr<ELFSection64> section = std::make_unique<ELFSection64>();
+                std::memcpy(section.get(), &(sections[i]), sizeof(ELFSection64));
+                sect_vector.push_back(std::move(section));
+            }
+            auto &shstrtab = sect_vector[mHeader.e_shstrndx]; // Section header table
+            for (size_t i = 0; i < mHeader.e_shnum; i++)
+            {
+                auto &section = sect_vector[i];
+                // Sections names are null-terminated
+                auto section_name = reinterpret_cast<char *>(mBuffer.data() + shstrtab->sh_offset + section->sh_name);
+                mSections[std::move(section_name)] = std::move(section);
+            }
             mStatus.section_table_read = true;
-            // Read section names
-            readSectionNames();
         }
     }
-    if(mStatus.section_table_read)
+    if (mStatus.section_table_read)
     {
-        for (size_t i = 0; i < mHeader.e_shnum; i++)
+        if (mHandlers.section_handler)
         {
-            if (mHandlers.section_handler)
+            for (const auto &[name, section] : mSections)
             {
-                mHandlers.section_handler(mSections[i], mSectionNames[i]);
+                mHandlers.section_handler(*section, name);
             }
         }
-    }
-}
-
-void ELFParser::readSectionNames()
-{
-    if (mStatus.section_table_read && !mStatus.section_names_read)
-    {
-        // Read section names
-        auto &shstrtab = mSections[mHeader.e_shstrndx];
-        mSectionNames.resize(mHeader.e_shnum);
-        for (size_t i = 0; i < mHeader.e_shnum; i++)
-        {
-            auto &section = mSections[i];
-            mSectionNames[i] = std::string(reinterpret_cast<char *>(mBuffer.data() + shstrtab.sh_offset + section.sh_name));
-        }
-        mStatus.section_names_read = true;
     }
 }

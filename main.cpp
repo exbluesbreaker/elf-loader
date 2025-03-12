@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     ELFSectionHandler section_printer = [count = 0](const ELFSection64 &section, const std::string &name) mutable
     {
         std::string indent = "\t";
-        std::cout << "Section # " << ++count << std::endl;
+        std::cout << "Section # " <<std::dec<< ++count << std::endl;
         std::cout << indent << "Name: " << name << std::endl;
         std::cout << indent << "Type: 0x" << std::hex << section.sh_type << std::endl;
         std::cout << indent << "Flags: 0x" << std::hex << section.sh_flags << std::endl;

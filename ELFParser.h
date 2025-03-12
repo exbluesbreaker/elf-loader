@@ -6,6 +6,9 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <memory>
+
+#include <unordered_map>
 
 namespace MyELF
 {
@@ -72,7 +75,6 @@ namespace MyELF
         bool loaded;
         bool header_read;
         bool section_table_read;
-        bool section_names_read;
     };
 
     struct ELFSectionHandlers
@@ -89,8 +91,7 @@ namespace MyELF
         std::vector<uint8_t> mBuffer;
         ELFSectionHandlers mHandlers;
         ELFHeader64 mHeader;
-        std::vector<ELFSection64> mSections;
-        std::vector<std::string> mSectionNames;
+        std::unordered_map<std::string, std::unique_ptr<ELFSection64>> mSections;
 
     public:
         ELFParser() = delete;
@@ -100,7 +101,6 @@ namespace MyELF
         void readData();
         void readHeader();
         void readSectionTable();
-        void readSectionNames();
         void setHeaderHandler(ELFHeaderHandler h) { mHandlers.header_handler = h; };
         void setSectionHandler(ELFSectionHandler h) { mHandlers.section_handler = h; };
     };
