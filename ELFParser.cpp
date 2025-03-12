@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <sstream>
 
 using namespace MyELF;
 
@@ -37,6 +38,7 @@ void ELFParser::readData()
     {
         readHeader();
         readSectionTable();
+        readSymbolTable();
     }
 }
 
@@ -45,8 +47,9 @@ void ELFParser::readHeader()
 
     if (mBuffer.size() < sizeof(ELFHeader64))
     {
-        std::cout << "Only " << mBuffer.size() << " bytes in buffer!" << std::endl;
-        return;
+        std::stringstream ss;
+        ss << "Only " << mBuffer.size() << " bytes in buffer!";
+        throw std::runtime_error(ss.str());
     }
     std::memcpy(&mHeader, mBuffer.data(), sizeof(ELFHeader64));
     if (mHandlers.header_handler)
@@ -92,6 +95,44 @@ void ELFParser::readSectionTable()
             for (const auto &[name, section] : mSections)
             {
                 mHandlers.section_handler(*section, name);
+            }
+        }
+    }
+}
+
+void MyELF::ELFParser::readSymbolTable()
+{
+    if (mStatus.header_read && mStatus.section_table_read)
+    {
+        if (!mSections.contains(".symtab"))
+        {
+            throw std::runtime_error("Cannot find symbol table!");
+        }
+        if (!mSections.contains(".strtab"))
+        {
+            throw std::runtime_error("Cannot find string table!");
+        }
+        auto &symtab = mSections[".symtab"];
+        auto &strtab = mSections[".strtab"];
+        size_t num_symbols = symtab->sh_size / symtab->sh_entsize;
+        // Raw data pointer
+        ELFSymbol64 *symbols = reinterpret_cast<ELFSymbol64 *>(mBuffer.data() + symtab->sh_offset);
+        for (size_t i = 0; i < num_symbols; i++)
+        {
+            std::unique_ptr<ELFSymbol64> symbol = std::make_unique<ELFSymbol64>();
+            std::memcpy(symbol.get(), &(symbols[i]), sizeof(ELFSymbol64));
+            auto symbol_name = reinterpret_cast<char *>(mBuffer.data() + strtab->sh_offset + symbol->st_name);
+            mSymbols[std::move(symbol_name)] = std::move(symbol);
+        }
+        mStatus.symbol_table_read = true;
+    }
+    if (mStatus.symbol_table_read)
+    {
+        if (mHandlers.symbol_handler)
+        {
+            for (const auto &[name, symbol] : mSymbols)
+            {
+                mHandlers.symbol_handler(*symbol, name);
             }
         }
     }

@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     ELFSectionHandler section_printer = [count = 0](const ELFSection64 &section, const std::string &name) mutable
     {
         std::string indent = "\t";
-        std::cout << "Section # " <<std::dec<< ++count << std::endl;
+        std::cout << "Section # " << std::dec << ++count << std::endl;
         std::cout << indent << "Name: " << name << std::endl;
         std::cout << indent << "Type: 0x" << std::hex << section.sh_type << std::endl;
         std::cout << indent << "Flags: 0x" << std::hex << section.sh_flags << std::endl;
@@ -69,7 +69,13 @@ int main(int argc, char *argv[])
         std::cout << indent << "Addralign: 0x" << std::hex << section.sh_addralign << std::endl;
         std::cout << indent << "Entsize: 0x" << std::hex << section.sh_entsize << std::endl;
     };
+    ELFSymbolHandler symbol_printer = [count = 0](const ELFSymbol64 &symbol, const std::string &name) mutable
+    {
+        std::string indent = "\t";
+        std::cout << "Symbol # " << std::dec << ++count << " Name: " << name << " Size: " << symbol.st_size << std::endl;
+    };
     parser.setSectionHandler(section_printer);
     parser.setHeaderHandler(header_printer);
+    parser.setSymbolHandler(symbol_printer);
     parser.readData();
 }

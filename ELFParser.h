@@ -67,20 +67,33 @@ namespace MyELF
         uint64_t sh_entsize;
     };
 
+    struct ELFSymbol64
+    {
+        Elf64_Word st_name;
+        unsigned char st_info;
+        unsigned char st_other;
+        Elf64_Half st_shndx;
+        Elf64_Addr st_value;
+        Elf64_Xword st_size;
+    };
+
     using ELFHeaderHandler = std::function<void(const ELFHeader64 &)>;
     using ELFSectionHandler = std::function<void(const ELFSection64 &, const std::string &)>;
+    using ELFSymbolHandler = std::function<void(const ELFSymbol64 &, const std::string &)>;
 
     struct ELFReadStatus
     {
         bool loaded;
         bool header_read;
         bool section_table_read;
+        bool symbol_table_read;
     };
 
     struct ELFSectionHandlers
     {
         ELFHeaderHandler header_handler;
         ELFSectionHandler section_handler;
+        ELFSymbolHandler symbol_handler;
     };
 
     class ELFParser
@@ -92,6 +105,7 @@ namespace MyELF
         ELFSectionHandlers mHandlers;
         ELFHeader64 mHeader;
         std::unordered_map<std::string, std::unique_ptr<ELFSection64>> mSections;
+        std::unordered_map<std::string, std::unique_ptr<ELFSymbol64>> mSymbols;
 
     public:
         ELFParser() = delete;
@@ -101,7 +115,9 @@ namespace MyELF
         void readData();
         void readHeader();
         void readSectionTable();
+        void readSymbolTable();
         void setHeaderHandler(ELFHeaderHandler h) { mHandlers.header_handler = h; };
         void setSectionHandler(ELFSectionHandler h) { mHandlers.section_handler = h; };
+        void setSymbolHandler(ELFSymbolHandler h) { mHandlers.symbol_handler = h; };
     };
 } // namespace MyELF
