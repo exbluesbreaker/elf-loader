@@ -7,8 +7,10 @@
 #include <vector>
 #include <functional>
 #include <memory>
-
+#include <cstring>
 #include <unordered_map>
+#include <optional>
+#include <iostream>
 
 namespace MyELF
 {
@@ -106,6 +108,28 @@ namespace MyELF
         ELFHeader64 mHeader;
         std::unordered_map<std::string, std::unique_ptr<ELFSection64>> mSections;
         std::unordered_map<std::string, std::unique_ptr<ELFSymbol64>> mSymbols;
+        inline const uint8_t *getSectionPtr(const std::string &name)
+        {
+            return mBuffer.data() + mSections[name]->sh_offset;
+        };
+        template <typename T>
+        auto genReadStruct(const T *arr, const size_t num)
+        {
+            return [=, i = size_t(0)]() mutable -> std::optional<std::unique_ptr<T>>
+            {
+                if (i < num)
+                {
+                    std::unique_ptr<T> t = std::make_unique<T>();
+                    std::memcpy(t.get(), &(arr[i]), sizeof(T));
+                    ++i;
+                    return t;
+                }
+                else
+                {
+                    return std::nullopt;
+                }
+            };
+        }
 
     public:
         ELFParser() = delete;

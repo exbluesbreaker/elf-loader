@@ -3,7 +3,6 @@
 //
 #include "ELFParser.h"
 #include <fstream>
-#include <cstring>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -25,7 +24,7 @@ void ELFParser::load()
 
         if (file_size > 0)
         {
-            mBuffer.resize(file_size);
+            mBuffer.resize(static_cast<size_t>(file_size));
             file.read(reinterpret_cast<char *>(mBuffer.data()), file_size);
         }
         mStatus.loaded = true;
@@ -71,13 +70,15 @@ void ELFParser::readSectionTable()
             sect_vector.reserve(mHeader.e_shnum);
             // Raw data pointer
             ELFSection64 *sections = reinterpret_cast<ELFSection64 *>(mBuffer.data() + mHeader.e_shoff);
-            for (size_t i = 0; i < mHeader.e_shnum; i++)
+            // Read all section first to access section header table
+            auto sectGen = genReadStruct(sections, mHeader.e_shnum);
+            while (auto sectopt = sectGen())
             {
-                std::unique_ptr<ELFSection64> section = std::make_unique<ELFSection64>();
-                std::memcpy(section.get(), &(sections[i]), sizeof(ELFSection64));
+                auto &section = *sectopt;
                 sect_vector.push_back(std::move(section));
             }
             auto &shstrtab = sect_vector[mHeader.e_shstrndx]; // Section header table
+            // Read all section names and store them in a map
             for (size_t i = 0; i < mHeader.e_shnum; i++)
             {
                 auto &section = sect_vector[i];
@@ -113,16 +114,15 @@ void MyELF::ELFParser::readSymbolTable()
             throw std::runtime_error("Cannot find string table!");
         }
         auto &symtab = mSections[".symtab"];
-        auto &strtab = mSections[".strtab"];
         size_t num_symbols = symtab->sh_size / symtab->sh_entsize;
         // Raw data pointer
-        ELFSymbol64 *symbols = reinterpret_cast<ELFSymbol64 *>(mBuffer.data() + symtab->sh_offset);
-        for (size_t i = 0; i < num_symbols; i++)
+        const ELFSymbol64 *symbols = reinterpret_cast<const ELFSymbol64 *>(getSectionPtr(".symtab"));
+        auto symGen = genReadStruct(symbols, num_symbols);
+        while (auto symopt = symGen())
         {
-            std::unique_ptr<ELFSymbol64> symbol = std::make_unique<ELFSymbol64>();
-            std::memcpy(symbol.get(), &(symbols[i]), sizeof(ELFSymbol64));
-            auto symbol_name = reinterpret_cast<char *>(mBuffer.data() + strtab->sh_offset + symbol->st_name);
-            mSymbols[std::move(symbol_name)] = std::move(symbol);
+            auto &symbol = *symopt;
+            auto symbol_name = reinterpret_cast<const char *>(getSectionPtr(".strtab") + symbol->st_name);
+            mSymbols[std::string(symbol_name)] = std::move(symbol);
         }
         mStatus.symbol_table_read = true;
     }

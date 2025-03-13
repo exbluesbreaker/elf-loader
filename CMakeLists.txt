@@ -7,6 +7,8 @@ project(elf_loader)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Werror)
+
 # Add the executable
 add_executable(elf_loader main.cpp ELFParser.cpp)
 
