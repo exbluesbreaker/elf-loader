@@ -74,6 +74,20 @@ int main(int argc, char *argv[])
         std::string indent = "\t";
         std::cout << "Symbol # " << std::dec << ++count << " Name: " << name << " Size: " << symbol.st_size << std::endl;
     };
+    ELFProgramHeaderHandler program_header_printer = [count = 0](const ELFProgramHeader64 &program_header) mutable
+    {
+        std::string indent = "\t";
+        std::cout << "Program header # " << std::dec << ++count << std::endl;
+        std::cout << indent << "Type: 0x" << std::hex << program_header.p_type << std::endl;
+        std::cout << indent << "Flags: 0x" << std::hex << program_header.p_flags << std::endl;
+        std::cout << indent << "Offset: 0x" << std::hex << program_header.p_offset << std::endl;
+        std::cout << indent << "Vaddr: 0x" << std::hex << program_header.p_vaddr << std::endl;
+        std::cout << indent << "Paddr: 0x" << std::hex << program_header.p_paddr << std::endl;
+        std::cout << indent << "Filesz: 0x" << std::hex << program_header.p_filesz << std::endl;
+        std::cout << indent << "Memsz: 0x" << std::hex << program_header.p_memsz << std::endl;
+        std::cout << indent << "Align: 0x" << std::hex << program_header.p_align << std::endl;
+    };
+    parser.setProgramHeaderHandler(program_header_printer);
     parser.setSectionHandler(section_printer);
     parser.setHeaderHandler(header_printer);
     parser.setSymbolHandler(symbol_printer);

@@ -79,14 +79,28 @@ namespace MyELF
         Elf64_Xword st_size;
     };
 
+    struct ELFProgramHeader64
+    {
+        Elf64_Word p_type;    // Type of segment
+        Elf64_Word p_flags;   // Segment flags
+        Elf64_Off p_offset;   // File offset where segment is located, in bytes
+        Elf64_Addr p_vaddr;   // Virtual address of beginning of segment
+        Elf64_Addr p_paddr;   // Physical addr of beginning of segment (OS-specific)
+        Elf64_Xword p_filesz; // Num. of bytes in file image of segment (may be zero)
+        Elf64_Xword p_memsz;  // Num. of bytes in mem image of segment (may be zero)
+        Elf64_Xword p_align;  // Segment alignment constraint
+    };
+
     using ELFHeaderHandler = std::function<void(const ELFHeader64 &)>;
     using ELFSectionHandler = std::function<void(const ELFSection64 &, const std::string &)>;
     using ELFSymbolHandler = std::function<void(const ELFSymbol64 &, const std::string &)>;
+    using ELFProgramHeaderHandler = std::function<void(const ELFProgramHeader64 &)>;
 
     struct ELFReadStatus
     {
         bool loaded;
         bool header_read;
+        bool program_header_read;
         bool section_table_read;
         bool symbol_table_read;
     };
@@ -96,6 +110,7 @@ namespace MyELF
         ELFHeaderHandler header_handler;
         ELFSectionHandler section_handler;
         ELFSymbolHandler symbol_handler;
+        ELFProgramHeaderHandler program_header_handler;
     };
 
     class ELFParser
@@ -108,6 +123,7 @@ namespace MyELF
         ELFHeader64 mHeader;
         std::unordered_map<std::string, std::unique_ptr<ELFSection64>> mSections;
         std::unordered_map<std::string, std::unique_ptr<ELFSymbol64>> mSymbols;
+        std::vector<std::unique_ptr<ELFProgramHeader64>> mProgramHeaders;
         inline const uint8_t *getSectionPtr(const std::string &name)
         {
             return mBuffer.data() + mSections[name]->sh_offset;
@@ -140,7 +156,9 @@ namespace MyELF
         void readHeader();
         void readSectionTable();
         void readSymbolTable();
+        void readProgramHeader();
         void setHeaderHandler(ELFHeaderHandler h) { mHandlers.header_handler = h; };
+        void setProgramHeaderHandler(ELFProgramHeaderHandler h) { mHandlers.program_header_handler = h; };
         void setSectionHandler(ELFSectionHandler h) { mHandlers.section_handler = h; };
         void setSymbolHandler(ELFSymbolHandler h) { mHandlers.symbol_handler = h; };
     };

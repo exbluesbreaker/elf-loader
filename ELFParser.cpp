@@ -36,6 +36,7 @@ void ELFParser::readData()
     if (mStatus.loaded && !mStatus.header_read)
     {
         readHeader();
+        readProgramHeader();
         readSectionTable();
         readSymbolTable();
     }
@@ -133,6 +134,37 @@ void MyELF::ELFParser::readSymbolTable()
             for (const auto &[name, symbol] : mSymbols)
             {
                 mHandlers.symbol_handler(*symbol, name);
+            }
+        }
+    }
+}
+
+void MyELF::ELFParser::readProgramHeader()
+{
+    if (mStatus.header_read && !mStatus.program_header_read)
+    {
+        if (mHeader.e_phoff > 0)
+        {
+            // Read program header
+            // Raw data pointer
+            mProgramHeaders.reserve(mHeader.e_phnum);
+            ELFProgramHeader64 *program_headers = reinterpret_cast<ELFProgramHeader64 *>(mBuffer.data() + mHeader.e_phoff);
+            auto phGen = genReadStruct(program_headers, mHeader.e_phnum);
+            while (auto phopt = phGen())
+            {
+                auto &program_header = *phopt;
+                mProgramHeaders.push_back(std::move(program_header));
+            }
+            mStatus.program_header_read = true;
+        }
+    }
+    if (mStatus.program_header_read)
+    {
+        if (mHandlers.program_header_handler)
+        {
+            for (const auto &program_header : mProgramHeaders)
+            {
+                mHandlers.program_header_handler(*program_header);
             }
         }
     }
